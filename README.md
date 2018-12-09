@@ -144,3 +144,41 @@ $ kubectl proxy &
 * [k8s dashboard](http://127.0.0.1:30000/api/v1/namespaces/kube-system/services/http:kubernetes-dashboard:/proxy/)
 * [k8s ui](http://localhost:30000/ui)
 * [http://localhost:30000/api/v1/namespaces/default/pods/$POD_NAME/proxy/](http://localhost:30000/api/v1/namespaces/default/pods/nginx-app-56f6bb6776-zvpqw/proxy/)
+
+## [k8s with private docker registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
+```bash
+$ kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+$ kubectl get secret regcred --output=yaml
+apiVersion: v1
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJoZWxhOjg0NDMiOnsiVXNlcm5hbWUiOiJyd2liYXdhIiwiUGFzc3dvcmQiOiJBc3RhZ2EwMDEhIiwiRW1haWwiOiJyeWFuLndpYmF3YUBnbWFpbC5jb20ifX19
+kind: Secret
+metadata:
+  creationTimestamp: "2018-12-09T19:35:01Z"
+  name: regcred
+  namespace: default
+  resourceVersion: "961992"
+  selfLink: /api/v1/namespaces/default/secrets/regcred
+  uid: 852b147f-fbe9-11e8-a347-8cd514c64884
+type: kubernetes.io/dockerconfigjson
+
+$ kubectl get secret regcred --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode
+
+$ docker build -t hela:8443/hello-k8s:v1 .
+$ docker run -d --name hello-k8s -p 8096:8080 hela:8443/hello-k8s:v1
+
+$ curl http://localhost:8096
+Hello Kubernetes bootcamp! | Running on: 2f1833b9cbeb | v=1
+$ curl http://localhost:8096
+Hello Kubernetes bootcamp! | Running on: 2f1833b9cbeb | v=1
+$ docker logs hello-k8s
+Kubernetes Bootcamp App Started At: 2018-12-09T19:43:31.756Z | Running On:  2f1833b9cbeb
+
+Running On: 2f1833b9cbeb | Total Requests: 1 | App Uptime: 28.161 seconds | Log Time: 2018-12-09T19:43:59.917Z
+Running On: 2f1833b9cbeb | Total Requests: 2 | App Uptime: 30.709 seconds | Log Time: 2018-12-09T19:44:02.465Z
+
+$ docker push hela:8443/hello-k8s:v1
+
+$ kubectl create -f my-private-reg-pod.yaml
+$ kubectl get pod private-reg
+```
