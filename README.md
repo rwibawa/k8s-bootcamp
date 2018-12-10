@@ -145,9 +145,50 @@ $ kubectl proxy &
 * [k8s ui](http://localhost:30000/ui)
 * [http://localhost:30000/api/v1/namespaces/default/pods/$POD_NAME/proxy/](http://localhost:30000/api/v1/namespaces/default/pods/nginx-app-56f6bb6776-zvpqw/proxy/)
 
-## [k8s with private docker registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
+## k8s with private docker registry
+* [local k8s cluster with insecure registries](https://medium.com/@alombarte/setting-up-a-local-kubernetes-cluster-with-insecure-registries-f5aaa34851ae)
+* [Pull an Image from a Private Registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
 ```bash
-$ kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+$ minikube stop
+$ minikube delete
+Deleting local Kubernetes cluster...
+Machine deleted.
+$ minikube start --vm-driver kvm2 --cpus 6 --disk-size 300g --memory 32000 --insecure-registry "hela:8443"
+
+$ minikube addons configure registry-creds -disk-size
+Do you want to enable AWS Elastic Container Registry? [y/n]: n
+Do you want to enable Google Container Registry? [y/n]: n
+Do you want to enable Docker Registry? [y/n]: y
+-- Enter docker registry server url: hela:8443
+-- Enter docker registry username: rwibawa
+-- Enter docker registry password:
+registry-creds was successfully configured
+$ minikube addons enable registry-creds
+registry-creds was successfully enabled
+
+$ minikube ssh
+                         _             _
+            _         _ ( )           ( )
+  ___ ___  (_)  ___  (_)| |/')  _   _ | |_      __
+/' _ ` _ `\| |/' _ `\| || , <  ( ) ( )| '_`\  /'__`\
+| ( ) ( ) || || ( ) || || |\`\ | (_) || |_) )(  ___/
+(_) (_) (_)(_)(_) (_)(_)(_) (_)`\___/'(_,__/'`\____)
+
+$ docker login -u <username> -p <password> hela:8443
+Login Succeeded
+$ docker pull hela:8443/nginx:1.15.6-alpine
+Error response from daemon: manifest for hela:8443/nginx:1.15.6-alpine not found
+$ docker pull hela:8443/hello-k8s:v1
+v1: Pulling from hello-k8s
+Digest: sha256:036874a2767bcbbb755ca91fca74508e7e6fdaafa1d84977e2e8ad6aa969daa5
+Status: Downloaded newer image for hela:8443/hello-k8s:v1
+
+$ kubectl create secret docker-registry regcred --docker-server="https://hela:8443" --docker-username="rwibawa" --docker-password="<password>" --docker-email="ryan.wibawa@gmail.com"
+secret/regcred created
+$ kubectl get secret
+NAME                  TYPE                                  DATA   AGE
+regcred               kubernetes.io/dockerconfigjson        1      5s
+
 $ kubectl get secret regcred --output=yaml
 apiVersion: v1
 data:
